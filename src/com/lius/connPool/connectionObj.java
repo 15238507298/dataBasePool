@@ -3,6 +3,7 @@ package com.lius.connPool;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.logging.Logger;
 
 import com.lius.models.connParamObj;
@@ -27,7 +28,7 @@ public class connectionObj {
 	private Connection conn;  
 	private Boolean isUesred = false; //是否在使用
 	private int State = notInit; //该连接句柄对象状态
-	private long birthDate;	//该连接句柄生成时间
+	private long birthDate = new Date().getTime();	//该连接句柄生成时间
 	//打印日志类
 	private static Logger logger = Logger.getLogger(Thread.
 			currentThread().getName());

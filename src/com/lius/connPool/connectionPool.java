@@ -84,8 +84,12 @@ public class connectionPool {
 				handleBusy(connObj, connectionObj.inited);
 
 			// 如果连接句柄对象创建时间超时,会标记该连接句柄对象状态为超时状态
-			if (new Date().getTime() - connObj.getBirthDate() >= 1000 * 60 * 5) {
-				connObj.setState(connectionObj.timeOut);
+//			logger.info(String.format("连接句柄对象[%s]已超时[%d]",connObj,
+//					new Date().getTime() - connObj.getBirthDate()));
+			
+			if (new Date().getTime() - connObj.getBirthDate() >= 1000*15) {
+				logger.info(String.format("连接句柄对象[%s]因超时原因已被标记为销毁状态", connObj));
+				connObj.setState(connectionObj.destroyed);
 			}
 
 			switch (states) {
@@ -95,7 +99,11 @@ public class connectionPool {
 			case connectionObj.inited:
 				break;
 			case connectionObj.timeOut:
-				handleBusy(connObj, connectionObj.inited);
+//				handleBusy(connObj, connectionObj.inited);
+				if (connObj.getIsUesred())
+					break;
+				connObj.freeResourceConnection();// 释放资源
+				connObj.setState(connectionObj.free);
 				break;
 			case connectionObj.destroyed:
 				if (connObj.getIsUesred())
@@ -105,7 +113,7 @@ public class connectionPool {
 				break;
 			}
 			return connObj;
-		}).filter(connObj -> connObj.getState() == connectionObj.inited || connObj.isUpdate)
+		}).filter(connObj -> connObj.getState() == connectionObj.inited || !connObj.isUpdate)
 				.collect(Collectors.toCollection(CopyOnWriteArrayList::new));
 	}
 
@@ -134,10 +142,9 @@ public class connectionPool {
 				.count();
 
 		if (value <= 0 && connectionObjList.size() + defaultSize <= maxPoolSize) {
-			if (value < 4)
+			if (value < 6) {
 				loopSetConnectionObjList(defaultSize);
-		} else {
-			loopSetConnectionObjList(maxPoolSize - connectionObjList.size());
+			}
 		}
 	}
 
@@ -152,13 +159,15 @@ public class connectionPool {
 					try {
 						Thread.sleep(4000);
 						topManage();
-						dynamicUpdateProperties();// 动态更新配置文件方法
+//						dynamicUpdateProperties();// 动态更新配置文件方法
+						logger.info(String.format("当前线程数量[%d]",connectionObjList.size()));
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
 						logger.info(e.getMessage());
 					}
 				}
-			});
+			}).start();
+			logger.info("数据库连接池监听管理线程初始化完成...");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			logger.info(e.getMessage());
@@ -229,7 +238,7 @@ public class connectionPool {
 	 * 
 	 * @param poolSize
 	 */
-	private void loopSetConnectionObjList(int poolSize) {
+	private synchronized void loopSetConnectionObjList(int poolSize) {
 		//超出线程最大数,禁止创建新连接句柄对象
 		if(connectionObjList.size()+poolSize>connectionPool.maxPoolSize) {
 			return;
@@ -260,7 +269,13 @@ public class connectionPool {
 				}).collect(Collectors.toCollection(CopyOnWriteArrayList::new));
 				// 重新获取最新动态更新数据库连接配置时间
 				connectionPool.dynamicUpdateTime = new Date().getTime();
-				dBProperties.set("state", "~update");
+				//还原dBProperties更新状态为未更新
+				try {
+					dBProperties.set("state", "!update");
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					logger.info(e.getMessage());
+				}
 			}
 		}
 

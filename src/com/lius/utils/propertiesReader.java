@@ -2,6 +2,8 @@ package com.lius.utils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -74,10 +76,14 @@ public class propertiesReader {
 	 * @param property
 	 * @param value
 	 * @return
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
 	 */
-	public boolean set(String property,String value) {
+	public boolean set(String property,String value) throws FileNotFoundException, IOException {
 		if(flag) {
 			this.properties.setProperty(property, value);
+			this.properties.store(new FileOutputStream(propertiesFilePath), "");
+			this.properties.load(new FileInputStream(propertiesFilePath));
 			logger.info(String.format("[%s]配置文件更新[key:%s,value:%s]配置参数", this.propertiesFilePath,property,value));
 			return true;
 		}else logger.info("更新配置参数失败,请初始化配置文件...");

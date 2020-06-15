@@ -14,8 +14,8 @@ public class testPool {
 	
 	private static AtomicInteger s = new AtomicInteger(0);
 	private static String propertyFilePath = "src/com/lius/resources/pool.properties";
-	private static int paralNums = 1000; 
-	private static CountDownLatch countDownMainLatch = new CountDownLatch(paralNums);
+	private static int paralNums = 20000; 
+	private static CountDownLatch countDownMainLatch = new CountDownLatch(paralNums+1);
 
 	private static CountDownLatch countDownLatch = new CountDownLatch(paralNums);
 	private connectionPool connPool;
